@@ -4,8 +4,18 @@ import sys
 import math
 import types
 import operator
+
 include 'pari_err.pxi'
-include 'stdsage.pxi'
+include 'ext/stdsage.pxi'
+include 'ext/python.pxi'
+include 'ext/interrupt.pxi'
+
+cdef extern from "misc.h":
+    int     factorint_withproof_sage(GEN* ans, GEN x, GEN cutoff)
+    int     gcmp_sage(GEN x, GEN y)
+
+cdef extern from "mpz_pylong.h":
+    cdef int mpz_set_pylong(mpz_t dst, src) except -1
 
 cdef extern from "Python.h":
     int PyObject_TypeCheck(object o, object type)

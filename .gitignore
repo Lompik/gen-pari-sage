@@ -3,3 +3,4 @@ cython_debug/
 dist/
 *.comp
 *.so
+/all.pyc

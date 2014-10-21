@@ -17,21 +17,23 @@
  *
  * @brief General C (.h) code this is useful to include in any pyrex module.
  *
- * Put 
+ * Put
  @verbatim
- 
-  include 'relative/path/to/stdsage.pxi' 
+
+  include 'relative/path/to/stdsage.pxi'
 
  @endverbatim
  *
- * at the top of your Pyrex file. 
+ * at the top of your Pyrex file.
  *
  * These are mostly things that can't be done in Pyrex.
  */
 
+#ifndef STDSAGE_H
+#define STDSAGE_H
 
 #include "Python.h"
-#include "memory1.h"
+#include "memory.h"
 
 /* Building with this not commented out causes
    serious problems on RHEL5 64-bit for Kiran Kedlaya... i.e., it doesn't work. */
@@ -56,54 +58,54 @@ extern "C" {
 
 /** Tests whether zzz_obj is of type zzz_type. The zzz_type must be a
  * built-in or extension type. This is just a C++-compatible wrapper
- * for PyObject_TypeCheck. 
+ * for PyObject_TypeCheck.
  */
 #define PY_TYPE_CHECK(zzz_obj, zzz_type) \
     (PyObject_TypeCheck((PyObject*)(zzz_obj), (PyTypeObject*)(zzz_type)))
 
 /** Tests whether zzz_obj is exactly of type zzz_type. The zzz_type must be a
-  * built-in or extension type.  
+  * built-in or extension type.
   */
 #define PY_TYPE_CHECK_EXACT(zzz_obj, zzz_type) \
   ((PyTypeObject*)PY_TYPE(zzz_obj) == (PyTypeObject*)(zzz_type))
-  
+
 /** Returns the type field of a python object, cast to void*. The
  *  returned value should only be used as an opaque object e.g. for
- *  type comparisons. 
+ *  type comparisons.
  */
 #define PY_TYPE(zzz_obj) ((void*)((zzz_obj)->ob_type))
 
 /** Constructs a new object of type zzz_type by calling tp_new
- *  directly, with no arguments. 
+ *  directly, with no arguments.
  */
 
 #define PY_NEW(zzz_type) \
-    (((PyTypeObject*)(zzz_type))->tp_new((PyTypeObject*)(zzz_type), global_empty_tuple, NULL)) 
+    (((PyTypeObject*)(zzz_type))->tp_new((PyTypeObject*)(zzz_type), global_empty_tuple, NULL))
 
-  
+
   /** Constructs a new object of type the same type as zzz_obj by calling tp_new
-   *  directly, with no arguments. 
+   *  directly, with no arguments.
    */
-  
+
 #define PY_NEW_SAME_TYPE(zzz_obj) \
-  PY_NEW(PY_TYPE(zzz_obj)) 
-  
+  PY_NEW(PY_TYPE(zzz_obj))
+
 /** Resets the tp_new slot of zzz_type1 to point to the tp_new slot of
  *  zzz_type2. This is used in SAGE to speed up Pyrex's boilerplate
  *  object construction code by skipping irrelevant base class tp_new
- *  methods. 
+ *  methods.
  */
 #define PY_SET_TP_NEW(zzz_type1, zzz_type2) \
     (((PyTypeObject*)zzz_type1)->tp_new = ((PyTypeObject*)zzz_type2)->tp_new)
 
 
 /**
- * Tests whether the given object has a python dictionary. 
+ * Tests whether the given object has a python dictionary.
  */
 #define HAS_DICTIONARY(zzz_obj) \
     (((PyObject*)(zzz_obj))->ob_type->tp_dictoffset != NULL)
 
-/** 
+/**
  * Very very unsafe access to the list of pointers to PyObject*'s
  * underlying a list / sequence.  This does error checking of any kind
  * -- make damn sure you hand it a list or sequence!
@@ -124,16 +126,16 @@ extern "C" {
  *  bool), but the second argument must be a C-extension type -- so it
  *  can't be a Python class or a list.  If you just want an int return
  *  value, i.e., aren't going to pass this back to Python, just use
- *  PY_TYPE_CHECK. 
+ *  PY_TYPE_CHECK.
  */
 #define IS_INSTANCE(zzz_obj, zzz_type) \
     PyBool_FromLong(PY_TYPE_CHECK(zzz_obj, zzz_type))
 
 
-/** 
+/**
  * A global empty python tuple object. This is used to speed up some
  * python API calls where we want to avoid constructing a tuple every
- * time. 
+ * time.
  */
 
 extern PyObject* global_empty_tuple;
@@ -141,7 +143,7 @@ extern PyObject* global_empty_tuple;
 
 /**
  * Initialisation of signal handlers, global variables, etc. Called
- * exactly once at Sage start-up. 
+ * exactly once at Sage start-up.
  */
 void init_csage(void);
 
@@ -164,3 +166,4 @@ void init_csage_module(void);
 }
 #endif
 
+#endif

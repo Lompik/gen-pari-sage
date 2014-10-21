@@ -5,19 +5,21 @@ For documentation about how to use these, see the Developer's Guide.
 
 This code distinguishes between two kinds of signals:
 
-(1) interrupt-like signals: SIGINT, SIGHUP.  The word
+(1) interrupt-like signals: SIGINT, SIGALRM, SIGHUP.  The word
 "interrupt" refers to any of these signals.  These need not be handled
 immediately, we might handle them at a suitable later time, outside of
 sig_block() and with the Python GIL acquired.  SIGINT raises a
-KeyboardInterrupt (as usual in Python), while SIGHUP raises
-SystemExit, causing Python to exit.  The latter signals also redirect
-stdin from /dev/null, to cause interactive sessions to exit also.
+KeyboardInterrupt (as usual in Python), SIGALRM raises AlarmInterrupt
+(a custom exception inheriting from KeyboardInterrupt), while SIGHUP
+raises SystemExit, causing Python to exit.  The latter signal also
+redirects stdin from /dev/null, to cause interactive sessions to exit.
 
-(2) critical signals: SIGILL, SIGABRT, SIGFPE, SIGBUS, SIGSEGV.
+(2) critical signals: SIGQUIT, SIGILL, SIGABRT, SIGFPE, SIGBUS, SIGSEGV.
 These are critical because they cannot be ignored.  If they happen
 outside of sig_on(), we can only exit Sage with the dreaded
 "unhandled SIG..." message.  Inside of sig_on(), they can be handled
-and raise a RuntimeError.
+and raise various exceptions (see sage/ext/c_lib.pyx).  SIGQUIT will
+never be handled and always causes Sage to exit.
 
 
 AUTHORS:
@@ -27,6 +29,10 @@ AUTHORS:
 - Jeroen Demeyer (2010-10-03): almost complete rewrite (#9678)
 
 - Jeroen Demeyer (2013-01-11): handle SIGHUP also (#13908)
+
+- Jeroen Demeyer (2013-01-28): handle SIGQUIT also (#14029)
+
+- Jeroen Demeyer (2013-05-13): handle SIGALRM also (#13311)
 
 */
 
@@ -44,7 +50,6 @@ AUTHORS:
 /* Whether or not to compile debug routines for the interrupt handling
  * code (0: disable, 1: enable).  Enabling will make the code slower.
  * The debug level itself needs to be set in c_lib/src/interrupt.c */
-#ifndef __MINGW32__
 #define ENABLE_DEBUG_INTERRUPT 0
 
 
@@ -53,10 +58,11 @@ AUTHORS:
 #include <Python.h>
 #include <setjmp.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #ifdef __cplusplus
 extern "C" {
-#endif 
+#endif
 
 
 /* Declare likely() and unlikely() as in Cython */
@@ -109,11 +115,6 @@ void sage_signal_handler(int sig);
  */
 void setup_sage_signal_handler(void);
 
-/* This function communicates signals to Python by raising an exception.
- * It may only be called synchronously with the Global Interpreter Lock
- * held. */
-void sig_raise_exception(int sig);
-
 
 /**********************************************************************
  * SAGE_SIGNALS_T STRUCTURE                                           *
@@ -147,10 +148,12 @@ struct sage_signals_t
 
     /* A jump buffer holding where to siglongjmp() after a signal has
      * been received. This is set by sig_on(). */
-#ifdef __MINGW32__
-#define sigjmp_buf jmp_buf
-#endif
     sigjmp_buf env;
+
+    /* External Cython function which actually raises the appropriate
+     * exception depending on the signal number. Must be set
+     * immediately after calling setup_sage_signal_handler(). */
+    int (*raise_exception)(int sig, const char* msg);
 
     /* An optional string may be passed to the signal handler which
      * will be used as the text for the exception. This can be set
@@ -296,7 +299,6 @@ static inline void _sig_off_(const char* file, int line)
 }
 
 
-
 /**********************************************************************
  * USER MACROS/FUNCTIONS                                              *
  **********************************************************************/
@@ -306,20 +308,12 @@ static inline void _sig_off_(const char* file, int line)
 #define sig_str(message)   _sig_on_(message)
 #define sig_off()          _sig_off_(__FILE__, __LINE__)
 
-/* These deprecated macros provide backwards compatibility with
- * sage-4.6 and earlier */
-#define _sig_on        {if (!_sig_on_(NULL)) return 0;}
-#define _sig_str(s)    {if (!_sig_on_(s)) return 0;}
-#define _sig_off       {_sig_off_(__FILE__, __LINE__);}
-
-
 /* sig_check() should be functionally equivalent to sig_on(); sig_off();
  * but much faster.  Essentially, it checks whether we missed any
  * interrupts.
  *
  * OUTPUT: zero if an interrupt occured, non-zero otherwise.
  */
-
 static inline int sig_check()
 {
     if (unlikely(_signals.interrupt_received) && _signals.sig_on_count == 0)
@@ -354,7 +348,6 @@ static inline int sig_check()
  * - For efficiency reasons, currently these may NOT be nested.
  *   Nesting could be implemented like src/headers/pariinl.h in PARI.
  */
-
 static inline void sig_block()
 {
 #if ENABLE_DEBUG_INTERRUPT
@@ -379,11 +372,7 @@ static inline void sig_unblock()
     _signals.block_sigint = 0;
 
     if (unlikely(_signals.interrupt_received) && _signals.sig_on_count > 0)
-#ifdef __MINGW32__
-      printf("Please Kill my PID");
-#else
-      kill(getpid(), _signals.interrupt_received);  /* Re-raise the signal */
-#endif
+        kill(getpid(), _signals.interrupt_received);  /* Re-raise the signal */
 }
 
 
@@ -392,7 +381,7 @@ static inline void sig_unblock()
  * s will be used as the text for the exception.  Note that s is not
  * copied, we just store the pointer.
  */
-//void set_sage_signal_handler_message(const char* s);
+void set_sage_signal_handler_message(const char* s);
 
 
 /*
@@ -400,7 +389,6 @@ static inline void sig_unblock()
  * for PARI: if PARI complains that it doesn't have enough memory, we
  * allocate a larger stack and retry the computation.
  */
-
 static inline void sig_retry()
 {
     /* If we're outside of sig_on(), we can't jump, so we can only bail
@@ -411,6 +399,18 @@ static inline void sig_retry()
         abort();
     }
     siglongjmp(_signals.env, -1);
+}
+
+/* Used in error callbacks from C code (in particular NTL and PARI).
+ * This should be used after an exception has been raised to jump back
+ * to sig_on() where the exception will be seen. */
+static inline void sig_error()
+{
+    if (unlikely(_signals.sig_on_count <= 0))
+    {
+        fprintf(stderr, "sig_error() without sig_on()\n");
+    }
+    abort();
 }
 
 
@@ -426,18 +426,5 @@ static inline void cython_check_exception() {return;}
 
 #ifdef __cplusplus
 }  /* extern "C" */
-#endif 
-#endif /* C_LIB_INCLUDE_INTERRUPT_H */
-#else
-#define sig_on(...)    1
-#define sig_off(...)   1
-#define sig_block(...) 1
-#define sig_retry(...) 1
-#define sig_unblock(...) 1
-#define setup_sage_signal_handler(...) 1
-#define sig_str(...) 1
-
-// _pari_trap(b,a) {}
-
-
 #endif
+#endif /* C_LIB_INCLUDE_INTERRUPT_H */

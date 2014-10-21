@@ -6,6 +6,7 @@
 
 #include <pari/pari.h>
 #include "interrupt.h"
+
 /* DO NOT REORDER THESE
  * actual values can be changed. Adapt lontyp in gen2.c */
 

@@ -1,3 +1,16 @@
+r"""
+Declarations for inline functions from PARI.
+
+This file contains all declarations from headers/pariinl.h from the
+PARI distribution.  All these functions are simple inline functions.
+This file is included by sage/libs/pari/decl.pxi
+
+
+AUTHORS:
+
+ - Jeroen Demeyer (2010-08-15): initial version (#9898)
+
+"""
 
 cdef extern from "pari/pari.h":
 
@@ -6,7 +19,7 @@ cdef extern from "pari/pari.h":
     #                          CONSTRUCTORS                           #
     #                                                                 #
     ###################################################################
-    
+
     GEN     mkintmod(GEN x, GEN y)
     GEN     mkintmodu(ulong x, ulong y)
     GEN     mkpolmod(GEN x, GEN y)
@@ -68,13 +81,13 @@ cdef extern from "pari/pari.h":
     void    vectrunc_append(GEN x, GEN t)
     GEN     vecsmalltrunc_init(long l)
     void    vecsmalltrunc_append(GEN x, long t)
-    
+
     ###################################################################
     #                                                                 #
     #                        VEC / COL / VECSMALL                     #
     #                                                                 #
     ###################################################################
-    
+
     GEN     vec_shorten(GEN v, long n)
     GEN     vec_lengthen(GEN v, long n)
     GEN     vec_setconst(GEN v, GEN x)
@@ -129,7 +142,7 @@ cdef extern from "pari/pari.h":
     GEN     rowpermute(GEN A, GEN p)
     void    vecselect_p(GEN A, GEN B, GEN p, long init, long lB)
     void    rowselect_p(GEN A, GEN B, GEN p, long init)
-    
+
     ###################################################################
     #                                                                 #
     #                          PERMUTATIONS                           #
@@ -237,22 +250,22 @@ cdef extern from "pari/pari.h":
     int     is_recursive_t(long t)
     int     is_scalar_t(long t)
     int     is_vec_t(long t)
-    
+
     ###################################################################
     #                                                                 #
     #                         TRANSCENDENTAL                          #
     #                                                                 #
     ###################################################################
-    
+
     GEN     sqrtr(GEN x)
     GEN     sqrtnr(GEN x, long n)
-    
+
     ###################################################################
     #                                                                 #
     #                         MISCELLANEOUS                           #
     #                                                                 #
     ###################################################################
-    
+
     int     isintzero(GEN x)
     int     isint1(GEN x)
     int     isintm1(GEN x)
@@ -260,16 +273,16 @@ cdef extern from "pari/pari.h":
     int     equalim1(GEN n)
     int     is_pm1(GEN n)
     int     is_bigint(GEN n)
-    
+
     # Many functions omitted
-    
+
     ### POLYNOMIALS
     GEN     constant_term(GEN x)
     GEN     leading_term(GEN x)
     long    degpol(GEN x)
     long    lgpol(GEN x)
     GEN     truecoeff(GEN x, long n)
-    
+
     ###################################################################
     #                                                                 #
     #                             ASSIGNMENTS                         #
@@ -277,7 +290,7 @@ cdef extern from "pari/pari.h":
     ###################################################################
 
     # Omitted
-    
+
     ###################################################################
     #                                                                 #
     #                       ELLIPTIC CURVES                           #
@@ -298,17 +311,17 @@ cdef extern from "pari/pari.h":
     GEN     ell_get_disc(GEN e)
     GEN     ell_get_j(GEN e)
     GEN     ell_get_roots(GEN e)
-    
+
     int     ell_is_inf(GEN z)
     int     ell_is_padic(GEN x)
     int     ell_is_real(GEN x)
-    
+
     ###################################################################
     #                                                                 #
     #                    ALGEBRAIC NUMBER THEORY                      #
     #                                                                 #
     ###################################################################
-    
+
     GEN     pr_get_p(GEN pr)
     GEN     pr_get_gen(GEN pr)
     long    pr_get_e(GEN pr)
@@ -316,7 +329,7 @@ cdef extern from "pari/pari.h":
     GEN     pr_get_tau(GEN pr)
     int     pr_is_inert(GEN P)
     GEN     pr_norm(GEN pr)
-    
+
     long    nf_get_varn(GEN nf)
     GEN     nf_get_pol(GEN nf)
     long    nf_get_degree(GEN nf)
@@ -333,7 +346,7 @@ cdef extern from "pari/pari.h":
     GEN     nf_get_zk(GEN nf)
     GEN     nf_get_invzk(GEN nf)
     void    nf_get_sign(GEN nf, long *r1, long *r2)
-    
+
     GEN     bnf_get_nf(GEN bnf)
     GEN     bnf_get_clgp(GEN bnf)
     GEN     bnf_get_no(GEN bnf)
@@ -354,7 +367,7 @@ cdef extern from "pari/pari.h":
     GEN     bnr_get_cyc(GEN bnr)
     GEN     bnr_get_gen_nocheck(GEN bnr)
     GEN     bnr_get_gen(GEN bnr)
-    
+
     GEN     bid_get_mod(GEN bid)
     GEN     bid_get_ideal(GEN bid)
     GEN     bid_get_arch(GEN bid)
@@ -372,9 +385,9 @@ cdef extern from "pari/pari.h":
     GEN     gal_get_group(GEN gal)
     GEN     gal_get_gen(GEN gal)
     GEN     gal_get_orders(GEN gal)
-    
+
     long    rnf_get_degree(GEN rnf)
-    
+
     GEN     idealpseudomin(GEN I, GEN G)
     GEN     idealpseudomin_nonscalar(GEN I, GEN G)
     GEN     idealred_elt(GEN nf, GEN I)
