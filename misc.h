@@ -19,13 +19,25 @@
 #define _pari_sig_off() _pari_endcatch; sig_off();
 
 inline void Testbesselk(int n,int prec){
-  int i=0;
+  int i=0; GEN g;
   if(n>1) {
     for (i=0;i<n;i++) {
       kbessel(gen_0,gen_1,prec);
     }
   }
 }
+inline GEN Testbesselk2(long n, long prec)
+  {
+    GEN b;	  /* vec */
+    long i;
+    b = cgetg(n,t_VEC);
+    {
+      for (i = 1; i<n; i++)
+	gel(b, i) = kbessel(gen_0, gen_1, prec);
+    }
+    return b;
+  }
+
 inline int strcmp_to_cmp(int f) {
     if (f > 0) {
       return 1;

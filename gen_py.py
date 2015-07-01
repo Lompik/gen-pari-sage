@@ -225,7 +225,7 @@ def python(z, locals=None):
         11^-5 + O(11^0)
     """
     from pari_instance import prec_words_to_bits
-
+    NotImplementedError("No conversion Possible yet")
     t = z.type()
     if t == "t_REAL":
         return RealField(prec_words_to_bits(z.precision()))(z)

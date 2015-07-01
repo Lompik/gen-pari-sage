@@ -20,15 +20,20 @@ setup(name="par",
     ext_modules = cythonize([
         Extension('gen', 
                   sources = ["gen.pyx"],
-                  libraries = ['pari', 'gmp',"m","csage"],extra_link_args=["-Lbuild/lib.linux-x86_64-2.7"]),
-        #,extra_compile_args=[ "-Og"],extra_link_args=["-Og"]),
+                  libraries = ['pari', 'gmp',"m","csage"],extra_link_args=["-Wl,--library-path=build/lib.linux-x86_64-2.7","-Wl,-rpath=$ORIGIN"]),
+        #,extra_compile_args=[ "-Og"],extra_link_args=["-Wl,-rpath==$ORIGIN  -Wl,-Og"]),
         Extension('handle_error',
                   sources = ["handle_error.pyx"],
-                  libraries = ['pari', 'gmp',"m","csage"],extra_link_args=["-Lbuild/lib.linux-x86_64-2.7"]),#,extra_compile_args=[ "-Og"],extra_link_args=["-Og"]),
+                  libraries = ['pari', 'gmp',"m","csage"],extra_link_args=["-Wl,--library-path=build/lib.linux-x86_64-2.7","-Wl,-rpath=$ORIGIN"]),#,extra_compile_args=[ "-Og"],extra_link_args=[" -Wl,-rpath==$ORIGIN  -Wl,-Og"]),
         Extension('pari_instance',
                   sources = ["pari_instance.pyx"],
-                  libraries = ['pari', 'gmp',"m","csage"],extra_link_args=["-Lbuild/lib.linux-x86_64-2.7"]),
-        Extension('csage',
+                  libraries = ['pari', 'gmp',"m","csage"],extra_link_args=["-Wl,--library-path=build/lib.linux-x86_64-2.7","-Wl,-rpath=$ORIGIN"]),
+        Extension('libcsage',
                   sources=['stdsage.c','interrupt.c','mpz_pylong.c','mpn_pylong.c','memory.c'],
-                  libraries=['gmp'])])#,extra_compile_args=[ "-Og"],extra_link_args=["-Og"])])
+                  libraries=['gmp'])])
 )
+
+
+
+# BUILD TAGS
+# mv TAGSpari TAGS;  ctags-exuberant -e --append --tag-relative=no -L filesToBeTagged.txt

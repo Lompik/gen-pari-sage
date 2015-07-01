@@ -58,6 +58,7 @@ cimport cython
 cdef extern from "misc.h":
     #int     factorint_withproof_sage(GEN* ans, GEN x, GEN cutoff)
     int     gcmp_sage(GEN x, GEN y)
+    GEN     TestBesselk2(long n, long prec)
 
 cdef extern from "stdsage.h":
     void  sage_free(void *p) nogil
@@ -89,6 +90,19 @@ cdef class gen:
     def __dealloc__(self):
         if self.b:
             sage_free(<void*> self.b)
+
+    def TestBesselk(self,long n11=10000, long precision=0):
+         pari_catch_sig_on()
+         cdef GEN b	  #/* vec */
+         cdef GEN temp
+         b = cgetg(n11,t_VEC)
+         if precision==0:
+             precision=P.get_real_precision();
+         cdef long i;
+         for i in range(1,n11):
+             temp = gel(b, i)
+             temp = kbessel(gen_0, gen_1, precision)                  
+         return P.new_gen(b)
 
     def __repr__(self):
         cdef char *c
@@ -324,7 +338,40 @@ cdef class gen:
     def __invert__(gen self):
         pari_catch_sig_on()
         return P.new_gen(ginv(self.g))
+    
+    ######################################## Arithmetic Operator
+    def __add__(self,other):
+        cdef gen t0=objtogen(self)
+        cdef gen t1=objtogen(other)
+        pari_catch_sig_on()
+        return P.new_gen(gadd(t0.g,t1.g))
 
+    def __sub__(self,other):
+        cdef gen t0=objtogen(self)
+        cdef gen t1=objtogen(other)
+        pari_catch_sig_on()
+        return P.new_gen(gsub(t0.g,t1.g))
+
+    def __mul__(self,other):
+        cdef gen t0=objtogen(self)
+        cdef gen t1=objtogen(other)
+        pari_catch_sig_on()
+        return P.new_gen(gmul(t0.g,t1.g))
+
+    def __div__(self,other):
+        cdef gen t0=objtogen(self)
+        cdef gen t1=objtogen(other)
+        pari_catch_sig_on()
+        return P.new_gen(gdiv(t0.g,t1.g))
+    
+    ######################################## Numeric Magic
+    #def 
+    
+    
+    
+    ######################################## Original Code
+    
+    
     def getattr(gen self, attr):
         """
         Return the PARI attribute with the given name.
@@ -347,8 +394,8 @@ cdef class gen:
             PariError: no function named "_.zzz"
 
         """
-        cdef str s = "_." + attr
-        cdef char *t = PyString_AsString(s)
+        cdef bytes s = "_." + attr
+        cdef char *t = s
         pari_catch_sig_on()
         return P.new_gen(closure_callgen1(strtofunction(t), self.g))
 
@@ -1060,9 +1107,7 @@ cdef class gen:
 
     def __len__(gen self):
         return glength(self.g)
-
-
-
+    
     ###########################################
     # comparisons
     # I had to rewrite PARI's compare, since
@@ -1071,7 +1116,7 @@ cdef class gen:
     ###########################################
     
     def __richcmp__(left, right, int op):
-        return (<gen>left)._richcmp(right, op)
+        return _richcmp_(left,right, op)
 
     #cdef int _cmp_c_impl(left, gen right) except -2
     def  _cmp_c_impl(left, gen right):# except -2:
@@ -1230,11 +1275,16 @@ cdef class gen:
             9223372036854775810L
 
         """
-        global Integer
-        if Integer is None:
-            import sage.rings.integer
-            Integer = sage.rings.integer.Integer
-        return int(Integer(self))
+        # global Integer
+        # if Integer is None:
+        #     import sage.rings.integer
+        #    Integer = sage.rings.integer.Integer
+        cdef int i
+        pari_catch_sig_on()
+        i = <int>gtolong(self.g)
+        pari_catch_sig_off()
+        return i        
+        #return int(self)
 
     def python_list_small(gen self):
         """
@@ -1351,11 +1401,15 @@ cdef class gen:
             sage: long(pari("Mod(2, 7)"))
             2L
         """
-        global Integer
-        if Integer is None:
-            import sage.rings.integer
-            Integer = sage.rings.integer.Integer
-        return long(Integer(self))
+        #global Integer
+        #if Integer is None:
+        #    import sage.rings.integer
+        #    Integer = sage.rings.integer.Integer
+        cdef long f
+        pari_catch_sig_on()
+        f = gtolong(self.g)
+        pari_catch_sig_off()
+        return f
 
     def __float__(gen self):
         """
@@ -9281,6 +9335,8 @@ cdef gen objtogen(s):
     cdef Py_ssize_t length, i
     cdef mpz_t mpz_int
     cdef gen v
+    cdef char* c_string
+    cdef bytes ustring
 
     if isinstance(s, gen):
         return s
@@ -9292,8 +9348,11 @@ cdef gen objtogen(s):
     # Check basic Python types. Start with strings, which are a very
     # common case.
     if PyString_Check(s):
+        
         pari_catch_sig_on()
-        g = gp_read_str(PyString_AsString(s))
+        ustring = (s).encode("utf-8")
+        c_string = ustring
+        g = gp_read_str(c_string)
         if g == gnil:
             P.clear_stack()
             return None
@@ -9489,3 +9548,40 @@ cdef _factor_int_when_pari_factor_failed(x, failed_factorization):
         m[i,1] = w[i][1]
     return m
 
+cdef _richcmp_(left, right, int op):
+    """
+    Compare left and right.
+    """
+    #if left._element_constructor is not None:#replaces check_old_coerce(left)
+    #    raise RuntimeError, "%s still using old coercion framework" % left
+
+    cdef int r
+
+    # if not PY_TYPE_CHECK(right, gen.gen) or not PY_TYPE_CHECK(left, gen.gen):
+    #     # One is not a parent -- use arbitrary ordering
+    #     if (<PyObject*>left) < (<PyObject*>right):
+    #         r = -1
+    #     elif (<PyObject*>left) > (<PyObject*>right):
+    #         r = 1
+    #     else:
+    #         r = 0
+
+    # else:
+    #     # Both are parents -- but need *not* have the same type.
+    #     if HAS_DICTIONARY(left):
+    #         r = left.__cmp__(right)
+    #     else:
+    r = (objtogen(left))._cmp_c_impl(objtogen(right))
+
+    if op == 0:  #<
+        return PyBool_FromLong(r  < 0)
+    elif op == 2: #==
+        return PyBool_FromLong(r == 0)
+    elif op == 4: #>
+        return PyBool_FromLong(r  > 0)
+    elif op == 1: #<=
+        return PyBool_FromLong(r <= 0)
+    elif op == 3: #!=
+        return PyBool_FromLong(r != 0)
+    elif op == 5: #>=
+        return PyBool_FromLong(r >= 0)

@@ -157,6 +157,8 @@ include 'pari_err.pxi'
 include 'ext/stdsage.pxi'
 include 'interrupt.pxi'
 
+
+
 cdef extern from 'memory.h':
     void init_memory_functions()
 
@@ -439,7 +441,7 @@ cdef class PariInstance:
         # error handlers.
         pari_init_opts(10000, maxprime, INIT_DFTm)
         #pari_init(1000000, 30000)
-
+        init_csage()
         _pari_init_error_handling()
 
         # pari_init_opts() overrides MPIR's memory allocation functions,

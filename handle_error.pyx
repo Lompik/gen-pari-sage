@@ -79,14 +79,14 @@ cdef int _pari_handle_exception(long err) except 0:
     if err == e_STACK:
         # PARI is out of memory.  We double the size of the PARI stack
         # and retry the computation.
-        from pari.all import pari
+        from all import pari
         pari.allocatemem(silent=True)
         return 0
 
     if err == e_USER:
         raise RuntimeError("PARI user exception\n%s" % pari_error_string)
     else:
-        from pari.all import PariError
+        from all import PariError
         raise PariError(err, pari_error_string)
 
 cdef void _pari_err_recover(long err):

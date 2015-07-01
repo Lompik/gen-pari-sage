@@ -5,7 +5,7 @@ cimport cython
 
 @cython.final
 cdef class gen:
-     cdef object _parent
+     #cdef object _parent
      cdef GEN g	
      cdef pari_sp b
      cdef dict refers_to
