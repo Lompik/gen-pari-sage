@@ -1,0 +1,41 @@
+Quick and (very, very) nasty standalone version of Sage's pari/gp lib. All credit goes to them.
+
+* Caution
+Use this at your own risk. I don't have much clue what I did and why it works. 
+
+* Usage
+
+#+BEGIN_SRC sh
+$ python2 setup.py build_ext 
+#+END_SRC
+
+#+BEGIN_SRC python
+from gen.pari_instance import pari 
+
+In [1]: import gen
+
+In [2]: a=pari("besselk(1,1)")
+
+Out[3]: type(a)
+Out[3]: gen.gen 
+
+Out[4]: a
+Out[4]: 0.601907230197235
+
+# or 
+
+In: a.besselk(1)
+In: pari("4+%d" % 5 )
+
+
+#+END_SRC
+
+I have tested it only by launching ipython in the same dir as the builds output dir.
+
+Tested with:
+  - python 2.7.10
+  - pari/gp : 2.7.4 (libpari-gmp-tls)
+
+* Second warning
+  - memory management (pari's stack and python's stack) should be a total mess.
+
